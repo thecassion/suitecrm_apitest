@@ -1,0 +1,40 @@
+version: '3.4'
+
+services:
+  apitest:
+    image: apitest
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - 8004:8004
+    environment:
+      DATABASE_URL: mysql+pymysql://apitest:apitest@db:3308/apitest
+      MYSQL_ROOT_PASSWORD: apitest
+      MYSQL_DATABASE: apitest
+      MYSQL_USER: apitest
+      MYSQL_PASSWORD: apitest
+      MYSQL_PORT: 3308
+      MYSQL_HOST: db
+    depends_on:
+      - db
+    networks:
+      - apitest_network
+  db:
+    image: mysql:5.7
+    ports:
+      - 3308:3308
+    environment:
+      MYSQL_ROOT_PASSWORD: apitest
+      MYSQL_DATABASE: apitest
+      MYSQL_USER: apitest
+      MYSQL_PASSWORD: apitest
+      MYSQL_PORT: 3308
+    networks:
+      - apitest_network
+
+networks:
+  apitest_network:
+    driver: bridge
