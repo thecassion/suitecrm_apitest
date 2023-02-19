@@ -59,9 +59,10 @@ def get_leads():
             "offset": next_offset,
             "select_fields": [
                 "id",
-                "name",
-                "email1",
-                "phone_mobile"
+                "first_name",
+                "last_name",
+                "phone_work",
+
             ],
             "link_name_to_fields_array": [],
             "max_results": "50",
@@ -76,16 +77,45 @@ def get_leads():
 
         #Connect to MySQL with pymysql
         connect_string =  settings.db_url
-        
         connection = pymysql.connect(host=settings.db_host, user=settings.db_user, password=settings.db_password, db=settings.db_database, charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
         conn = connection.cursor()
+        #Drop table leads if exists
+        conn.execute("DROP TABLE IF EXISTS leads")
         #Create table leads if leads table exists truncate it
-        conn.execute("CREATE TABLE IF NOT EXISTS leads (id VARCHAR(255), name VARCHAR(255), email1 VARCHAR(255), phone_mobile VARCHAR(255))")
-        conn.execute("TRUNCATE TABLE leads")
+        conn.execute("CREATE TABLE IF NOT EXISTS leads (id VARCHAR(255), first_name VARCHAR(255), last_name VARCHAR(255), phone_work VARCHAR(255))")
         #Insert data to MySQL
         for lead in leads[0]:
-            conn.execute("INSERT INTO leads (id, name, email1, phone_mobile) VALUES (%s, %s, %s, %s)", (lead['id'], lead['name_value_list']['name']['value'], lead['name_value_list']['email1']['value'], lead['name_value_list']['phone_mobile']['value']))
+            conn.execute("INSERT INTO leads (id, first_name, last_name, phone_work) VALUES (%s, %s, %s, %s)", (lead['id'], lead['name_value_list']['first_name']['value'], lead['name_value_list']['last_name']['value'], lead['name_value_list']['phone_work']['value']))
         connection.commit()
         conn.close()
 
     return leads
+
+
+"""
+        Get Bitcoin USD price
+"""
+@app.get("/bitcoinusd")
+def get_bitcoin():
+    #Get Bitcoin USD prices from coinapi.io with trade historical data
+    url = "https://rest.coinapi.io/v1/trades/BITSTAMP_SPOT_BTC_USD/history?period_id=1DAY&time_start=2023-02-18T00:00:00"
+    apiKey="ADFE5322-81FD-47AA-8350-A39076E9F03B"
+    headers = {
+        'X-CoinAPI-Key': apiKey
+    }
+    response = requests.request("GET", url, headers=headers)
+    print(response.json())
+    #Connect to MySQL with pymysql
+    connection = pymysql.connect(host=settings.db_host, user=settings.db_user, password=settings.db_password, db=settings.db_database, charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+    conn = connection.cursor()
+    #Drop table bitcoin if exists
+    conn.execute("DROP TABLE IF EXISTS bitcoin")
+    #Create table bitcoin if bitcoin table exists truncate it
+    conn.execute("CREATE TABLE IF NOT EXISTS bitcoin (symbol_id VARCHAR(255), time_exchange VARCHAR(255), time_coinapi VARCHAR(255), uuid VARCHAR(255), price VARCHAR(255), size VARCHAR(255), taker_side VARCHAR(255))")
+    #Insert data to MySQL
+    for data in response.json():
+        conn.execute("INSERT INTO bitcoin (symbol_id, time_exchange, time_coinapi, uuid, price, size, taker_side) VALUES (%s, %s, %s, %s, %s, %s, %s)", (data['symbol_id'], data['time_exchange'], data['time_coinapi'], data['uuid'], data['price'], data['size'], data['taker_side']))
+    connection.commit()
+    conn.close()
+
+    return response.json()
