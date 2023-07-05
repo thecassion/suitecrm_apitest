@@ -72,22 +72,22 @@ def get_leads():
         response = restRequest(method, arguments)
         next_offset = response.get('next_offset')
         if response.get('next_offset') == int(response.get('total_count')):
+            print("next_offset is equal to total_count",  response.get('next_offset'))
             next_offset = None
-        leads.append(response.get('entry_list'))
-
-        #Connect to MySQL with pymysql
-        connect_string =  settings.db_url
-        connection = pymysql.connect(host=settings.db_host, user=settings.db_user, password=settings.db_password, db=settings.db_database, charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
-        conn = connection.cursor()
-        #Drop table leads if exists
-        conn.execute("DROP TABLE IF EXISTS leads")
-        #Create table leads if leads table exists truncate it
-        conn.execute("CREATE TABLE IF NOT EXISTS leads (id VARCHAR(255), first_name VARCHAR(255), last_name VARCHAR(255), phone_work VARCHAR(255))")
-        #Insert data to MySQL
-        for lead in leads[0]:
-            conn.execute("INSERT INTO leads (id, first_name, last_name, phone_work) VALUES (%s, %s, %s, %s)", (lead['id'], lead['name_value_list']['first_name']['value'], lead['name_value_list']['last_name']['value'], lead['name_value_list']['phone_work']['value']))
-        connection.commit()
-        conn.close()
+        print("next_offset", next_offset)
+        leads +=response.get('entry_list')
+    #Connect to MySQL with pymysql
+    connection = pymysql.connect(host=settings.db_host, user=settings.db_user, password=settings.db_password, db=settings.db_database, charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+    conn = connection.cursor()
+    #Drop table leads if exists
+    conn.execute("DROP TABLE IF EXISTS leads")
+    #Create table leads if leads table exists truncate it
+    conn.execute("CREATE TABLE IF NOT EXISTS leads (id VARCHAR(255), first_name VARCHAR(255), last_name VARCHAR(255), phone_work VARCHAR(255))")
+    #Insert data to MySQL
+    for lead in leads:
+        conn.execute("INSERT INTO leads (id, first_name, last_name, phone_work) VALUES (%s, %s, %s, %s)", (lead['id'], lead['name_value_list']['first_name']['value'], lead['name_value_list']['last_name']['value'], lead['name_value_list']['phone_work']['value']))
+    connection.commit()
+    conn.close()
 
     return leads
 
